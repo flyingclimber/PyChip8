@@ -1,0 +1,14 @@
+Title: Python Chip8 Emulator
+Description: An emulator that can play Chip8 games. It should be able to pause, play sound, load any chip 8 roms
+Object: Emulator:
+            load_rom
+            start
+            pause
+            reset
+            get_key_press
+        Chip8:
+            reset_memory
+            clear_timers
+            clear_grafx
+            clear_registers
+            update_program_counter
