@@ -1,5 +1,6 @@
 from random import random
 from time import sleep
+from easygraphics import *
 
 font_set = [
     0xF0, 0x90, 0x90, 0x90, 0xF0,  # 0
@@ -19,6 +20,8 @@ font_set = [
     0xF0, 0x80, 0xF0, 0x80, 0xF0,  # E
     0xF0, 0x80, 0xF0, 0x80, 0x80  # F
 ]
+
+scalar = 15
 
 
 class Emulator:
@@ -244,8 +247,26 @@ class CPU:
                     case 0xC000:
                         self.write_register((op_code & 0x0F00) >> 8, random.randint(0, 255) & (op_code & 0x00FF))
                         self.pc += 2
-                    case 0xD000:
-                        pass
+                    case 0xD000:  # Dxyn - DRW Vx, Vy, nibble
+                        self.write_register(0xF, 0)
+                        vx = self.read_register((op_code & 0x0F00) >> 8)
+                        vy = self.read_register((op_code & 0x00F0) >> 4)
+                        n = op_code & 0x000F
+
+                        for y in range(n):
+                            sprite = self.memory[self.I + y]
+                            for x in range(8):
+                                if (sprite & (0x80 >> x)) != 0:
+                                    t_x = (vx + x) % 64
+                                    t_y = (vy + y) % 32
+                                    indx = t_x + (t_y * 64)
+                                    val = self.read_graphics(indx)
+                                    val ^= 1
+                                    self.write_graphics(indx, val)
+                                    if self.read_graphics(indx) == 0:
+                                        self.write_register(0xF, 1)
+                        self.draw_flag = True
+                        self.pc += 2
                     case 0xE000:
                         match op_code & 0x00FF:
                             case 0x9E:
@@ -292,33 +313,54 @@ class CPU:
                             case 0x65:
                                 for i in range((op_code & 0x0F00) >> 8):
                                     self.write_register(i, self.memory[self.I + i])
-                                self.i += ((op_code & 0x0F00) >> 8) + 1
+                                self.I += ((op_code & 0x0F00) >> 8) + 1
                                 self.pc += 2
                     case _:
                         print(f"Unknown opcode {hex(op_code)}")
                         self.pc += 2
-            except TypeError:
+            except TypeError as inst:
                 print(f"Couldn't decode {hex(op_code)} at {hex(self.pc)}")
+                print(type(inst))
+                print(inst.args)
+                print(inst)
+
                 exit(1)
         else:
             print("Nothing to do...")
 
     def update_screen(self):
+        print("Updating screen")
+        for y in range(32):
+            for x in range(64):
+                if self.read_graphics(x + (y * 64)) == 1:
+                    set_fill_color(Color.BLUE)
+                else:
+                    set_fill_color(Color.RED)
+                draw_rect(x * scalar, y * scalar, (x + scalar) * scalar, (y + scalar) * scalar)
+        delay_fps(1000)
         self.draw_flag = False
-        pass
 
     def clear_graphics(self):
-        self.gfx = [None] * 2048
+        self.gfx = [0] * 2048
 
     def start(self):
-        while not self.paused:
-            print(hex(self.pc))
-            sleep(2)
-            self.cycle()
+        while is_run():
+            while not self.paused:
+                print(f"PC: {hex(self.pc)}")
+                self.cycle()
 
 
-if __name__ == "__main__":
+def main():
+    init_graph(64 * scalar, 32 * scalar)
+    set_render_mode(RenderMode.RENDER_MANUAL)
+    set_caption("Chip-8 Emulator")
+
     emu = Emulator()
     emu.load_rom('ibm.chip8')
     emu.load_font_set()
     emu.start()
+    close_graph()
+
+
+if __name__ == '__main__':
+    easy_run(main)
