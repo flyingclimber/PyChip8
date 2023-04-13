@@ -230,6 +230,7 @@ class CPU:
                             case 0x6:
                                 self.write_register(0xF, self.read_register(vx) & 0x1)
                                 self.write_register(vx, self.read_register(vx) >> 1)
+                                self.pc += 2
                             case 0x7:
                                 total = self.read_register(vy) - self.read_register(vx)
                                 self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
