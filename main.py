@@ -174,8 +174,10 @@ class CPU:
                                 self.pc += 2
                                 self.draw_flag = True
                             case 0xEE:
-                                self.pc = self.stack[self.sp]
                                 self.sp -= 1
+                                self.pc = self.stack[self.sp]
+                                self.pc += 2
+
                             case _:
                                 print(f"Unknown opcode 0x{hex(op_code)}")
                     case 0x1000:  # 1NNN Jumps to address NN
