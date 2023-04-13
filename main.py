@@ -1,3 +1,6 @@
+from random import random
+from time import sleep
+
 font_set = [
     0xF0, 0x90, 0x90, 0x90, 0xF0,  # 0
     0x20, 0x60, 0x20, 0x20, 0x70,  # 1
@@ -60,6 +63,7 @@ class CPU:
     """
 
     def __init__(self):
+        self.keypad = None
         self.v = [None] * 16
         self.stack = [None]
         self.memory = [None] * 4096
@@ -170,8 +174,8 @@ class CPU:
                     case 0x1000:  # 1NNN Jumps to address NN
                         self.pc = op_code & 0x0FFF
                     case 0x2000:  # 2NNN	Calls subroutine at NNN
-                        self.sp += 1
                         self.stack[self.sp] = self.pc
+                        self.sp += 1
                         self.pc = op_code & 0x0FFF
                     case 0x3000:
                         self.pc += 4 if self.read_register((op_code & 0x0F00) >> 8) == (op_code & 0x00FF) else 2
@@ -185,13 +189,111 @@ class CPU:
                         self.pc += 2
                     case 0x7000:
                         reg = (op_code & 0x0F00) >> 8
-                        self.write_register(reg, self.read_register(reg) + (op_code & 0x00FF))
+                        val = self.read_register(reg) + (op_code & 0x00FF)
+                        self.write_register(reg, val & 0xFF)
                         self.pc += 2
                     case 0x8000:
+                        vx = (op_code & 0x0F00) >> 8
+                        vy = (op_code & 0x00F0) >> 4
                         match op_code & 0x000F:
                             case 0x0:
-                                pass
-
+                                self.write_register(vx, self.read_register(vy))
+                                self.pc += 2
+                            case 0x1:
+                                self.write_register(vx, self.read_register(vx) | self.read_register(vy))
+                                self.pc += 2
+                            case 0x2:
+                                self.write_register(vx, self.read_register(vx) & self.read_register(vy))
+                                self.pc += 2
+                            case 0x3:
+                                self.write_register(vx, self.read_register(vx) ^ self.read_register(vy))
+                                self.pc += 2
+                            case 0x4:
+                                total = self.read_register(vx) + self.read_register(vy)
+                                self.write_register(0xF, 1) if total > 255 else self.write_register(0xF, 0)
+                                self.write_register(vx, total & 0xFF)
+                                self.pc += 2
+                            case 0x5:
+                                total = self.read_register(vx) - self.read_register(vy)
+                                self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
+                                self.write_register(vx, total & 0xFF)
+                                self.pc += 2
+                            case 0x6:
+                                self.write_register(0xF, self.read_register(vx) & 0x1)
+                                self.write_register(vx, self.read_register(vx) >> 1)
+                            case 0x7:
+                                total = self.read_register(vy) - self.read_register(vx)
+                                self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
+                                self.write_register(vx, total & 0xFF)
+                                self.pc += 2
+                            case 0xE:
+                                self.write_register(0xF, self.read_register(vx) >> 7)
+                                self.write_register(vx, self.read_register(vx) << 1)
+                                self.pc += 2
+                            case _:
+                                print(f"Unknown opcode 0x{hex(op_code)}")
+                                exit(1)
+                    case 0x9000:
+                        self.pc += 4 if self.read_register((op_code & 0x0F00) >> 8) != self.read_register(
+                            (op_code & 0x00F0) >> 4) else 2
+                    case 0xA000:
+                        self.I = op_code & 0x0FFF
+                        self.pc += 2
+                    case 0xB000:
+                        self.pc = (op_code & 0x0FFF) + self.read_register(0)
+                    case 0xC000:
+                        self.write_register((op_code & 0x0F00) >> 8, random.randint(0, 255) & (op_code & 0x00FF))
+                        self.pc += 2
+                    case 0xD000:
+                        pass
+                    case 0xE000:
+                        match op_code & 0x00FF:
+                            case 0x9E:
+                                self.pc += 4 if self.keypad[self.read_register((op_code & 0x0F00) >> 8)] else 2
+                            case 0xA1:
+                                self.pc += 4 if not self.keypad[self.read_register((op_code & 0x0F00) >> 8)] else 2
+                            case _:
+                                print(f"Unknown opcode 0x{hex(op_code)}")
+                    case 0xF000:
+                        match op_code & 0x00FF:
+                            case 0x07:
+                                self.write_register((op_code & 0x0F00) >> 8, self.delay_timer)
+                                self.pc += 2
+                            case 0x0A:
+                                key_pressed = False
+                                for i in range(16):
+                                    if self.keypad[i]:
+                                        self.write_register((op_code & 0x0F00) >> 8, i)
+                                        key_pressed = True
+                                if not key_pressed:
+                                    return
+                            case 0x15:
+                                self.delay_timer = self.read_register((op_code & 0x0F00) >> 8)
+                                self.pc += 2
+                            case 0x18:
+                                self.sound_timer = self.read_register((op_code & 0x0F00) >> 8)
+                                self.pc += 2
+                            case 0x1E:
+                                self.I += self.read_register((op_code & 0x0F00) >> 8)
+                                self.pc += 2
+                            case 0x29:
+                                self.I = self.read_register((op_code & 0x0F00) >> 8) * 5
+                                self.pc += 2
+                            case 0x33:
+                                self.memory[self.I] = self.read_register((op_code & 0x0F00) >> 8) / 100
+                                self.memory[self.I + 1] = (self.read_register((op_code & 0x0F00) >> 8) / 10) % 10
+                                self.memory[self.I + 2] = (self.read_register((op_code & 0x0F00) >> 8) % 100) % 10
+                                self.pc += 2
+                            case 0x55:
+                                for i in range((op_code & 0x0F00) >> 8):
+                                    self.memory[self.I + i] = self.read_register(i)
+                                self.i += ((op_code & 0x0F00) >> 8) + 1
+                                self.pc += 2
+                            case 0x65:
+                                for i in range((op_code & 0x0F00) >> 8):
+                                    self.write_register(i, self.memory[self.I + i])
+                                self.i += ((op_code & 0x0F00) >> 8) + 1
+                                self.pc += 2
                     case _:
                         print(f"Unknown opcode {hex(op_code)}")
                         self.pc += 2
@@ -210,4 +312,13 @@ class CPU:
 
     def start(self):
         while not self.paused:
+            print(hex(self.pc))
+            sleep(2)
             self.cycle()
+
+
+if __name__ == "__main__":
+    emu = Emulator()
+    emu.load_rom('ibm.chip8')
+    emu.load_font_set()
+    emu.start()

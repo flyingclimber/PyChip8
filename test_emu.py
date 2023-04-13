@@ -19,6 +19,12 @@ def test_memory_write():
     assert emu.cpu.read_memory(2) == 0xA
 
 
+def test_memory_2byte_write():
+    emu = Emulator()
+    emu.cpu.write_memory_2byte(0x200, 0xDEEF)
+    assert emu.cpu.read_memory(0x200) == 0xDE and emu.cpu.read_memory(0x201) == 0xEF
+
+
 """
 def test_emulator_start():
     emu = Emulator()
@@ -80,6 +86,24 @@ def test_7xkk():
     emu.cpu.write_memory_2byte(0x200, 0x7101)
     emu.cpu.decode_opcode()
     assert emu.cpu.read_register(1) == 0xB
+
+
+def test_8xy0():
+    emu = Emulator()
+    emu.cpu.write_register(1, 0xA)
+    emu.cpu.write_register(2, 0xB)
+    emu.cpu.write_memory_2byte(0x200, 0x8120)
+    emu.cpu.decode_opcode()
+    assert emu.cpu.read_register(1) == emu.cpu.read_register(2)
+
+
+def test_9xy0():
+    emu = Emulator()
+    emu.cpu.write_register(2, 0x46)
+    emu.cpu.write_register(3, 0x47)
+    emu.cpu.write_memory_2byte(0x200, 0x9230)
+    emu.cpu.decode_opcode()
+    assert emu.cpu.pc == 0x204
 
 
 def test_font_set():
