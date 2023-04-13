@@ -1,6 +1,6 @@
 from random import random
-from time import sleep
 from easygraphics import *
+import sys
 
 font_set = [
     0xF0, 0x90, 0x90, 0x90, 0xF0,  # 0
@@ -54,10 +54,14 @@ class Emulator:
         :param rom: binary
         :return:
         """
-        with open(rom, mode="rb") as file:
-            self.rom = file.read()
-        for loc, byte in enumerate(self.rom, start=0x200):
-            self.cpu.write_memory(loc, byte)
+        try:
+            with open(rom, mode="rb") as file:
+                self.rom = file.read()
+            for loc, byte in enumerate(self.rom, start=0x200):
+                self.cpu.write_memory(loc, byte)
+        except FileNotFoundError:
+            print(f"File {rom} not found")
+            exit(1)
 
 
 class CPU:
@@ -356,7 +360,7 @@ def main():
     set_caption("Chip-8 Emulator")
 
     emu = Emulator()
-    emu.load_rom('ibm.chip8')
+    emu.load_rom(sys.argv[1])
     emu.load_font_set()
     emu.start()
     close_graph()
