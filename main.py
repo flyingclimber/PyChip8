@@ -35,6 +35,10 @@ class Emulator:
         self.rom = False
 
     def start(self):
+        """
+        Start the emulator
+        :return: None
+        """
         if not self.rom:
             return print("Please load a rom")
         else:
@@ -44,7 +48,7 @@ class Emulator:
     def load_font_set(self):
         """
         Load the base font set
-        :return:
+        :return: None
         """
         for loc, byte in enumerate(font_set):
             self.cpu.write_memory(loc, byte)
@@ -53,7 +57,7 @@ class Emulator:
         """
         Load a new rom into memory
         :param rom: binary
-        :return:
+        :return: None
         """
         try:
             with open(rom, mode="rb") as file:
@@ -133,7 +137,7 @@ class CPU:
         Write to a given graphics memory location
         :param loc: memory location
         :param val: value to be written
-        :return:
+        :return: None
         """
         self.gfx[loc] = val
 
@@ -160,10 +164,18 @@ class CPU:
             print(f"Graphics memory access error at {loc}")
 
     def cycle(self):
+        """
+        Lookup the next instruction and update screen if necessary
+        :return: None
+        """
         self.decode_opcode()
         if self.draw_flag: self.update_screen()
 
     def decode_opcode(self):
+        """
+        Decode the next instruction
+        :return: None
+        """
         op_code = self.read_memory(self.pc) << 8 | self.read_memory(self.pc + 1)
         if op_code:
             try:
@@ -347,6 +359,10 @@ class CPU:
             print("Nothing to do...")
 
     def update_screen(self):
+        """
+        Draw the screen
+        :return: None
+        """
         for y in range(32):
             for x in range(64):
                 if self.read_graphics(x + (y * 64)) == 1:
@@ -358,9 +374,17 @@ class CPU:
         self.draw_flag = False
 
     def clear_graphics(self):
+        """
+        Clear graphics memory
+        :return:
+        """
         self.gfx = [0] * 2048
 
     def start(self):
+        """
+        Start the CPU
+        :return: None
+        """
         while is_run():
             while not self.paused:
                 print(f"PC: {hex(self.pc)}")
