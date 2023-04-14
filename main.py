@@ -262,7 +262,7 @@ class CPU:
                         n = op_code & 0x000F
 
                         for y in range(n):
-                            sprite = self.memory[self.I + y]
+                            sprite = self.read_memory(self.I + y)
                             for x in range(8):
                                 if (sprite & (0x80 >> x)) != 0:
                                     t_x = (vx + x) % 64
@@ -311,9 +311,9 @@ class CPU:
                             case 0x33:
                                 reg = (op_code & 0x0F00) >> 8
                                 val = self.read_register(reg)
-                                self.memory[self.I] = floor(val / 100)
-                                self.memory[self.I + 1] = floor(val / 10) % 10
-                                self.memory[self.I + 2] = floor(val % 10)
+                                self.write_memory(self.I, floor(val / 100))
+                                self.write_memory(self.I + 1, floor(val / 10) % 10)
+                                self.write_memory(self.I + 2, floor(val % 10))
                                 self.pc += 2
                             case 0x55:
                                 reg = (op_code & 0x0F00) >> 8
