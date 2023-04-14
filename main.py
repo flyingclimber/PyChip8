@@ -73,7 +73,7 @@ class CPU:
     def __init__(self):
         self.keypad = None
         self.v = [None] * 16
-        self.stack = [None]
+        self.stack = [None] * 255
         self.memory = [None] * 4096
         self.gfx = [None] * 2048
         self.pc = 0x200
