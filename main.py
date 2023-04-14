@@ -220,26 +220,26 @@ class CPU:
                                 self.pc += 2
                             case 0x4:
                                 total = self.read_register(vx) + self.read_register(vy)
-                                self.write_register(0xF, 1) if total > 255 else self.write_register(0xF, 0)
                                 self.write_register(vx, total & 0xFF)
+                                self.write_register(0xF, 1) if total > 255 else self.write_register(0xF, 0)
                                 self.pc += 2
                             case 0x5:
                                 total = self.read_register(vx) - self.read_register(vy)
-                                self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.write_register(vx, total & 0xFF)
+                                self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.pc += 2
                             case 0x6:
-                                self.write_register(0xF, self.read_register(vx) & 0x1)
                                 self.write_register(vx, self.read_register(vx) >> 1)
+                                self.write_register(0xF, self.read_register(vx) & 0x1)
                                 self.pc += 2
                             case 0x7:
                                 total = self.read_register(vy) - self.read_register(vx)
-                                self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.write_register(vx, total & 0xFF)
+                                self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.pc += 2
                             case 0xE:
-                                self.write_register(0xF, self.read_register(vx) >> 7)
                                 self.write_register(vx, self.read_register(vx) << 1)
+                                self.write_register(0xF, self.read_register(vx) >> 7)
                                 self.pc += 2
                             case _:
                                 print(f"Unknown opcode 0x{hex(op_code)}")
