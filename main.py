@@ -1,7 +1,7 @@
 from math import floor
 from random import random
+from sys import argv
 from easygraphics import *
-import sys
 
 font_set = [
     0xF0, 0x90, 0x90, 0x90, 0xF0,  # 0
@@ -40,7 +40,7 @@ class Emulator:
         :return: None
         """
         if not self.rom:
-            return print("Please load a rom")
+            print("Please load a rom")
         else:
             self.load_font_set()
             self.cpu.start()
@@ -214,48 +214,48 @@ class CPU:
                         self.write_register(reg, val & 0xFF)
                         self.pc += 2
                     case 0x8000:  # 8XYN
-                        vx = (op_code & 0x0F00) >> 8
-                        vy = (op_code & 0x00F0) >> 4
+                        v_x = (op_code & 0x0F00) >> 8
+                        v_y = (op_code & 0x00F0) >> 4
                         match op_code & 0x000F:
                             case 0x0:  # 8XY0	Sets VX to the value of VY
-                                self.write_register(vx, self.read_register(vy))
+                                self.write_register(v_x, self.read_register(v_y))
                                 self.pc += 2
                             case 0x1:  # 8XY1	Sets VX to VX or VY
-                                self.write_register(vx, self.read_register(vx) | self.read_register(vy))
+                                self.write_register(v_x, self.read_register(v_x) | self.read_register(v_y))
                                 self.pc += 2
                             case 0x2:  # 8XY2	Sets VX to VX and VY
-                                self.write_register(vx, self.read_register(vx) & self.read_register(vy))
+                                self.write_register(v_x, self.read_register(v_x) & self.read_register(v_y))
                                 self.pc += 2
                             case 0x3:  # 8XY3	Sets VX to VX xor VY
-                                self.write_register(vx, self.read_register(vx) ^ self.read_register(vy))
+                                self.write_register(v_x, self.read_register(v_x) ^ self.read_register(v_y))
                                 self.pc += 2
                             case 0x4:  # 8XY4	Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when
                                 # there isn't
-                                total = self.read_register(vx) + self.read_register(vy)
-                                self.write_register(vx, total & 0xFF)
+                                total = self.read_register(v_x) + self.read_register(v_y)
+                                self.write_register(v_x, total & 0xFF)
                                 self.write_register(0xF, 1) if total > 255 else self.write_register(0xF, 0)
                                 self.pc += 2
                             case 0x5:  # 8XY5	VY is subtracted from VX. VF is set to 0 when there's a borrow,
                                 # and 1 when there isn't
-                                total = self.read_register(vx) - self.read_register(vy)
-                                self.write_register(vx, total & 0xFF)
+                                total = self.read_register(v_x) - self.read_register(v_y)
+                                self.write_register(v_x, total & 0xFF)
                                 self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.pc += 2
                             case 0x6:  # 8XY6	Shifts VX right by one. VF is set to the value of the least
                                 # significant bit of VX before the shift
-                                self.write_register(vx, self.read_register(vx) >> 1)
-                                self.write_register(0xF, self.read_register(vx) & 0x1)
+                                self.write_register(v_x, self.read_register(v_x) >> 1)
+                                self.write_register(0xF, self.read_register(v_x) & 0x1)
                                 self.pc += 2
                             case 0x7:  # 8XY7	Sets VX to VY minus VX. VF is set to 0 when there's a borrow,
                                 # and 1 when there isn't
-                                total = self.read_register(vy) - self.read_register(vx)
-                                self.write_register(vx, total & 0xFF)
+                                total = self.read_register(v_y) - self.read_register(v_x)
+                                self.write_register(v_x, total & 0xFF)
                                 self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.pc += 2
                             case 0xE:  # 8XYE	Shifts VX left by one. VF is set to the value of the most significant
                                 # bit of VX before the shift
-                                self.write_register(vx, self.read_register(vx) << 1)
-                                self.write_register(0xF, self.read_register(vx) >> 7)
+                                self.write_register(v_x, self.read_register(v_x) << 1)
+                                self.write_register(0xF, self.read_register(v_x) >> 7)
                                 self.pc += 2
                             case _:
                                 print(f"Unknown opcode 0x{hex(op_code)}")
@@ -274,16 +274,16 @@ class CPU:
                         self.pc += 2
                     case 0xD000:  # DXYN - DRW Vx, Vy, nibble
                         self.write_register(0xF, 0)
-                        vx = self.read_register((op_code & 0x0F00) >> 8)
-                        vy = self.read_register((op_code & 0x00F0) >> 4)
+                        v_x = self.read_register((op_code & 0x0F00) >> 8)
+                        v_y = self.read_register((op_code & 0x00F0) >> 4)
                         n = op_code & 0x000F
 
                         for y in range(n):
                             sprite = self.read_memory(self.I + y)
                             for x in range(8):
                                 if (sprite & (0x80 >> x)) != 0:
-                                    t_x = (vx + x) % 64
-                                    t_y = (vy + y) % 32
+                                    t_x = (v_x + x) % 64
+                                    t_y = (v_y + y) % 32
                                     indx = t_x + (t_y * 64)
                                     val = self.read_graphics(indx)
                                     val ^= 1
@@ -392,12 +392,16 @@ class CPU:
 
 
 def main():
+    """
+    Main function
+    :return: 
+    """
     init_graph(64 * scalar, 32 * scalar)
     set_render_mode(RenderMode.RENDER_MANUAL)
     set_caption("Chip-8 Emulator")
 
     emu = Emulator()
-    emu.load_rom(sys.argv[1])
+    emu.load_rom(argv[1])
     emu.load_font_set()
     emu.start()
     close_graph()
