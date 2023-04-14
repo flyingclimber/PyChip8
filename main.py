@@ -1,3 +1,4 @@
+from math import floor
 from random import random
 from easygraphics import *
 import sys
@@ -91,7 +92,7 @@ class CPU:
         :return: None
         """
         try:
-            self.v[num] = val
+            self.v[num] = val & 0xFF
         except IndexError:
             print(f"Invalid register index {num}")
             exit(1)
@@ -308,19 +309,21 @@ class CPU:
                                 self.I = self.read_register((op_code & 0x0F00) >> 8) * 5
                                 self.pc += 2
                             case 0x33:
-                                self.memory[self.I] = self.read_register((op_code & 0x0F00) >> 8) / 100
-                                self.memory[self.I + 1] = (self.read_register((op_code & 0x0F00) >> 8) / 10) % 10
-                                self.memory[self.I + 2] = (self.read_register((op_code & 0x0F00) >> 8) % 100) % 10
+                                reg = (op_code & 0x0F00) >> 8
+                                val = self.read_register(reg)
+                                self.memory[self.I] = floor(val / 100)
+                                self.memory[self.I + 1] = floor(val / 10) % 10
+                                self.memory[self.I + 2] = floor(val % 10)
                                 self.pc += 2
                             case 0x55:
-                                for i in range((op_code & 0x0F00) >> 8):
-                                    self.memory[self.I + i] = self.read_register(i)
-                                self.i += ((op_code & 0x0F00) >> 8) + 1
+                                reg = (op_code & 0x0F00) >> 8
+                                for i in range(reg + 1):
+                                    self.write_memory(self.I + i, self.read_register(i))
                                 self.pc += 2
                             case 0x65:
-                                for i in range((op_code & 0x0F00) >> 8):
-                                    self.write_register(i, self.memory[self.I + i])
-                                self.I += ((op_code & 0x0F00) >> 8) + 1
+                                reg = (op_code & 0x0F00) >> 8
+                                for i in range(reg + 1):
+                                    self.write_register(i, self.read_memory(self.I + i))
                                 self.pc += 2
                     case _:
                         print(f"Unknown opcode {hex(op_code)}")
@@ -336,7 +339,6 @@ class CPU:
             print("Nothing to do...")
 
     def update_screen(self):
-        print("Updating screen")
         for y in range(32):
             for x in range(64):
                 if self.read_graphics(x + (y * 64)) == 1:
