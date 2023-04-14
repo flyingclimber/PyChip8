@@ -170,92 +170,97 @@ class CPU:
                 match op_code & 0xF000:
                     case 0x0000:
                         match op_code & 0x00FF:
-                            case 0xE0:
+                            case 0xE0:  # 00E0  Clears the screen
                                 self.clear_graphics()
                                 self.pc += 2
                                 self.draw_flag = True
-                            case 0xEE:
+                            case 0xEE:  # 00EE Returns from subroutine
                                 self.sp -= 1
                                 self.pc = self.stack[self.sp]
                                 self.pc += 2
-
                             case _:
                                 print(f"Unknown opcode 0x{hex(op_code)}")
-                    case 0x1000:  # 1NNN Jumps to address NN
+                    case 0x1000:  # 1NNN    Jumps to address NN
                         self.pc = op_code & 0x0FFF
                     case 0x2000:  # 2NNN	Calls subroutine at NNN
                         self.stack[self.sp] = self.pc
                         self.sp += 1
                         self.pc = op_code & 0x0FFF
-                    case 0x3000:
+                    case 0x3000:  # 3XNN	Skips the next instruction if VX equals NN
                         self.pc += 4 if self.read_register((op_code & 0x0F00) >> 8) == (op_code & 0x00FF) else 2
-                    case 0x4000:
+                    case 0x4000:  # 4XNN	Skips the next instruction if VX doesn't equal NN
                         self.pc += 4 if self.read_register((op_code & 0x0F00) >> 8) != (op_code & 0x00FF) else 2
-                    case 0x5000:
+                    case 0x5000:  # 5XY0	Skips the next instruction if VX equals VY
                         self.pc += 4 if self.read_register((op_code & 0x0F00) >> 8) == self.read_register(
                             (op_code & 0x00F0) >> 4) else 2
-                    case 0x6000:
+                    case 0x6000:  # 6XNN	Sets VX to NN
                         self.write_register((op_code & 0x0F00) >> 8, op_code & 0x00FF)
                         self.pc += 2
-                    case 0x7000:
+                    case 0x7000:  # 7XNN    Adds NN to VX
                         reg = (op_code & 0x0F00) >> 8
                         val = self.read_register(reg) + (op_code & 0x00FF)
                         self.write_register(reg, val & 0xFF)
                         self.pc += 2
-                    case 0x8000:
+                    case 0x8000:  # 8XYN
                         vx = (op_code & 0x0F00) >> 8
                         vy = (op_code & 0x00F0) >> 4
                         match op_code & 0x000F:
-                            case 0x0:
+                            case 0x0:  # 8XY0	Sets VX to the value of VY
                                 self.write_register(vx, self.read_register(vy))
                                 self.pc += 2
-                            case 0x1:
+                            case 0x1:  # 8XY1	Sets VX to VX or VY
                                 self.write_register(vx, self.read_register(vx) | self.read_register(vy))
                                 self.pc += 2
-                            case 0x2:
+                            case 0x2:  # 8XY2	Sets VX to VX and VY
                                 self.write_register(vx, self.read_register(vx) & self.read_register(vy))
                                 self.pc += 2
-                            case 0x3:
+                            case 0x3:  # 8XY3	Sets VX to VX xor VY
                                 self.write_register(vx, self.read_register(vx) ^ self.read_register(vy))
                                 self.pc += 2
-                            case 0x4:
+                            case 0x4:  # 8XY4	Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when
+                                # there isn't
                                 total = self.read_register(vx) + self.read_register(vy)
                                 self.write_register(vx, total & 0xFF)
                                 self.write_register(0xF, 1) if total > 255 else self.write_register(0xF, 0)
                                 self.pc += 2
-                            case 0x5:
+                            case 0x5:  # 8XY5	VY is subtracted from VX. VF is set to 0 when there's a borrow,
+                                # and 1 when there isn't
                                 total = self.read_register(vx) - self.read_register(vy)
                                 self.write_register(vx, total & 0xFF)
                                 self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.pc += 2
-                            case 0x6:
+                            case 0x6:  # 8XY6	Shifts VX right by one. VF is set to the value of the least
+                                # significant bit of VX before the shift
                                 self.write_register(vx, self.read_register(vx) >> 1)
                                 self.write_register(0xF, self.read_register(vx) & 0x1)
                                 self.pc += 2
-                            case 0x7:
+                            case 0x7:  # 8XY7	Sets VX to VY minus VX. VF is set to 0 when there's a borrow,
+                                # and 1 when there isn't
                                 total = self.read_register(vy) - self.read_register(vx)
                                 self.write_register(vx, total & 0xFF)
                                 self.write_register(0xF, 0) if total < 0 else self.write_register(0xF, 1)
                                 self.pc += 2
-                            case 0xE:
+                            case 0xE:  # 8XYE	Shifts VX left by one. VF is set to the value of the most significant
+                                # bit of VX before the shift
                                 self.write_register(vx, self.read_register(vx) << 1)
                                 self.write_register(0xF, self.read_register(vx) >> 7)
                                 self.pc += 2
                             case _:
                                 print(f"Unknown opcode 0x{hex(op_code)}")
                                 exit(1)
-                    case 0x9000:
+                    case 0x9000:  # 9XY0	Skips the next instruction if VX doesn't equal VY
                         self.pc += 4 if self.read_register((op_code & 0x0F00) >> 8) != self.read_register(
                             (op_code & 0x00F0) >> 4) else 2
-                    case 0xA000:
+                    case 0xA000:  # ANNN	Sets I to the address NNN
                         self.I = op_code & 0x0FFF
                         self.pc += 2
-                    case 0xB000:
+                    case 0xB000:  # BNNN	Jumps to the address NNN plus V0
                         self.pc = (op_code & 0x0FFF) + self.read_register(0)
-                    case 0xC000:
+                    case 0xC000:  # CXNN	Sets VX to the result of a bitwise and operation on a random number (
+                        # Typically: 0 to 255) and NN
                         self.write_register((op_code & 0x0F00) >> 8, random.randint(0, 255) & (op_code & 0x00FF))
                         self.pc += 2
-                    case 0xD000:  # Dxyn - DRW Vx, Vy, nibble
+                    case 0xD000:  # DXYN - DRW Vx, Vy, nibble
                         self.write_register(0xF, 0)
                         vx = self.read_register((op_code & 0x0F00) >> 8)
                         vy = self.read_register((op_code & 0x00F0) >> 4)
@@ -277,18 +282,18 @@ class CPU:
                         self.pc += 2
                     case 0xE000:
                         match op_code & 0x00FF:
-                            case 0x9E:
+                            case 0x9E:  # EX9E	Skips the next instruction if the key stored in VX is pressed
                                 self.pc += 4 if self.keypad[self.read_register((op_code & 0x0F00) >> 8)] else 2
-                            case 0xA1:
+                            case 0xA1:  # EXA1	Skips the next instruction if the key stored in VX isn't pressed
                                 self.pc += 4 if not self.keypad[self.read_register((op_code & 0x0F00) >> 8)] else 2
                             case _:
                                 print(f"Unknown opcode 0x{hex(op_code)}")
                     case 0xF000:
                         match op_code & 0x00FF:
-                            case 0x07:
+                            case 0x07:  # FX07	Sets VX to the value of the delay timer
                                 self.write_register((op_code & 0x0F00) >> 8, self.delay_timer)
                                 self.pc += 2
-                            case 0x0A:
+                            case 0x0A:  # FX0A	A key press is awaited, and then stored in VX
                                 key_pressed = False
                                 for i in range(16):
                                     if self.keypad[i]:
@@ -296,31 +301,34 @@ class CPU:
                                         key_pressed = True
                                 if not key_pressed:
                                     return
-                            case 0x15:
+                            case 0x15:  # FX15	Sets the delay timer to VX
                                 self.delay_timer = self.read_register((op_code & 0x0F00) >> 8)
                                 self.pc += 2
-                            case 0x18:
+                            case 0x18:  # FX18	Sets the sound timer to VX
                                 self.sound_timer = self.read_register((op_code & 0x0F00) >> 8)
                                 self.pc += 2
-                            case 0x1E:
+                            case 0x1E:  # FX1E	Adds VX to I
                                 self.I += self.read_register((op_code & 0x0F00) >> 8)
                                 self.pc += 2
-                            case 0x29:
+                            case 0x29:  # FX29	Sets I to the location of the sprite for the character in VX.
+                                # Characters 0-F (in hexadecimal) are represented by a 4x5 font
                                 self.I = self.read_register((op_code & 0x0F00) >> 8) * 5
                                 self.pc += 2
-                            case 0x33:
+                            case 0x33:  # FX33	Stores the Binary-coded decimal representation of VX, with the most
+                                # significant of three digits at the address in I, the middle digit at I plus 1,
+                                # and the least significant digit at I plus 2
                                 reg = (op_code & 0x0F00) >> 8
                                 val = self.read_register(reg)
                                 self.write_memory(self.I, floor(val / 100))
                                 self.write_memory(self.I + 1, floor(val / 10) % 10)
                                 self.write_memory(self.I + 2, floor(val % 10))
                                 self.pc += 2
-                            case 0x55:
+                            case 0x55:  # FX55	Stores V0 to VX in memory starting at address I
                                 reg = (op_code & 0x0F00) >> 8
                                 for i in range(reg + 1):
                                     self.write_memory(self.I + i, self.read_register(i))
                                 self.pc += 2
-                            case 0x65:
+                            case 0x65:  # FX65	Fills V0 to VX with values from memory starting at address I
                                 reg = (op_code & 0x0F00) >> 8
                                 for i in range(reg + 1):
                                     self.write_register(i, self.read_memory(self.I + i))
