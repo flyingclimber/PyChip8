@@ -1,5 +1,5 @@
 from math import floor
-from random import random
+from random import randint
 from sys import argv
 from easygraphics import *
 
@@ -270,7 +270,7 @@ class CPU:
                         self.pc = (op_code & 0x0FFF) + self.read_register(0)
                     case 0xC000:  # CXNN	Sets VX to the result of a bitwise and operation on a random number (
                         # Typically: 0 to 255) and NN
-                        self.write_register((op_code & 0x0F00) >> 8, random.randint(0, 255) & (op_code & 0x00FF))
+                        self.write_register((op_code & 0x0F00) >> 8, randint(0, 255) & (op_code & 0x00FF))
                         self.pc += 2
                     case 0xD000:  # DXYN - DRW Vx, Vy, nibble
                         self.write_register(0xF, 0)
